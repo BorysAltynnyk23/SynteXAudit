@@ -12,7 +12,7 @@ const toBN = ethers.BigNumber.from;
 const ZERO_ADDRESS = ethers.constants.ZERO_ADDRESS;
 const provider = ethers.provider;
 
-describe.only("ERC20X", function () {
+describe("ERC20X", function () {
     let snapshotA: SnapshotRestorer;
 
 	let syntheX: SyntheX;
