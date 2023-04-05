@@ -468,9 +468,6 @@ describe("Crowdsale", function () {
                 }
             )
             let recipt = await tx.wait()
-            console.log(recipt)
-            const USER_REQUEST_ID = [recipt.events[0].args.requestId]
-
             // await time.increase(2 * DAY)
 
             // await crowdsale.connect(users[0]).unlock(USER_REQUEST_ID)
