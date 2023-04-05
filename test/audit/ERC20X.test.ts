@@ -9,16 +9,19 @@ import { SyntheX, Pool, ERC20X, IWETH } from "../../typechain-types";
 
 const parseEther = ethers.utils.parseEther;
 const toBN = ethers.BigNumber.from;
-const ZERO_ADDRESS = ethers.constants.ZERO_ADDRESS;
+const ZERO_ADDRESS = ethers.constants.AddressZero;
 const provider = ethers.provider;
 
-describe("ERC20X", function () {
+describe.only("ERC20X", function () {
     let snapshotA: SnapshotRestorer;
 
 	let syntheX: SyntheX;
     let pool: Pool;
     let erc20X: ERC20X;
     let weth: IWETH;
+
+    const testName = "Test";
+    const testSymbol = "TST";
     
     let deployer: SignerWithAddress, owner: SignerWithAddress, user: SignerWithAddress;
 
@@ -113,11 +116,9 @@ describe("ERC20X", function () {
 
     it("Should update flash fee", async function () {
         let newFlashFee = await erc20X.BASIS_POINTS();
-        console.log(newFlashFee);
         newFlashFee = parseEther("1");
-        console.log(newFlashFee);
         let event = "FlashFeeUpdated";
-        expect(await erc20X.connect(user).updateFlashFee(newFlashFee)).to.emit(erc20X, event);
+        expect(await erc20X.connect(owner).updateFlashFee(newFlashFee)).to.emit(erc20X, event);
 	});
 
     it("Should not update flash fee if sender is not L1 admin", async function () {
@@ -134,7 +135,7 @@ describe("ERC20X", function () {
         expect(poolMock.address).to.be.not.equal(ZERO_ADDRESS);
 
         // init Pool mock
-        await poolMock.connect(user2).initialize(testName, testSymbol, syntheX.address);
+        await poolMock.connect(owner).initialize(testName, testSymbol, syntheX.address, weth.address);
 
         // deploy ERC20X used Mock
         const ERC20XMock = await ethers.getContractFactory('ERC20XMock')
@@ -163,7 +164,7 @@ describe("ERC20X", function () {
         expect(poolMock.address).to.be.not.equal(ZERO_ADDRESS);
 
         // init Pool mock
-        await poolMock.connect(user2).initialize(testName, testSymbol, syntheX.address);
+        await poolMock.connect(owner).initialize(testName, testSymbol, syntheX.address, weth.address);
 
         // deploy ERC20X used Mock
         const ERC20XMock = await ethers.getContractFactory('ERC20XMock')
@@ -192,7 +193,7 @@ describe("ERC20X", function () {
         expect(poolMock.address).to.be.not.equal(ZERO_ADDRESS);
 
         // init Pool mock
-        await poolMock.connect(user2).initialize(testName, testSymbol, syntheX.address);
+        await poolMock.connect(owner).initialize(testName, testSymbol, syntheX.address, weth.address);
 
         // deploy ERC20X used Mock
         const ERC20XMock = await ethers.getContractFactory('ERC20XMock')
