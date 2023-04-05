@@ -20,7 +20,7 @@ import { draftErc20PermitUpgradeableSol } from "../../typechain-types/factories/
 const DAY = 24*60*60
 const toEther = ethers.utils.formatEther
 
-describe.only("Pool", function () {
+describe("Pool", function () {
     let snapshotA: SnapshotRestorer;
 
     // Signers.
@@ -332,6 +332,57 @@ describe.only("Pool", function () {
             await pool.connect(user_1).withdraw(collateral_1.address, AMOUNT, UNWRAP)
 
             expect(await collateral_1.balanceOf(user_1.address)).to.be.eq(AMOUNT)
+        })
+        it("user can withdraw ETH collateral", async() =>{
+            await pool.updateCollateral(
+                weth.address, 
+                {
+                    isActive : true,
+                    cap : parseEther("1000"),
+                    totalDeposits : parseEther("1000"),
+                    baseLTV : 8000,
+                    liqThreshold : 9000,
+                    liqBonus : 10000 // 0
+                }
+            )   
+
+            await pool.connect(user_1).enterCollateral(weth.address)
+            
+            const AMOUNT = parseEther("100")
+            await pool.unpause()
+            const USER_BALANCE_BEFORE = await ethers.provider.getBalance(user_1.address)
+            await pool.connect(user_1).depositETH({value: AMOUNT})
+            
+            const UNWRAP = true
+            await pool.connect(user_1).withdraw(weth.address, AMOUNT, UNWRAP)
+            const USER_BALANCE_AFTER = await ethers.provider.getBalance(user_1.address)
+
+            expect(USER_BALANCE_BEFORE.sub(USER_BALANCE_AFTER)).to.be.lessThan(parseEther("0.000000001"))
+        })
+        it("user can withdraw ETH collateral as WETH", async() =>{
+            await pool.updateCollateral(
+                weth.address, 
+                {
+                    isActive : true,
+                    cap : parseEther("1000"),
+                    totalDeposits : parseEther("1000"),
+                    baseLTV : 8000,
+                    liqThreshold : 9000,
+                    liqBonus : 10000 // 0
+                }
+            )   
+
+            await pool.connect(user_1).enterCollateral(weth.address)
+            
+            const AMOUNT = parseEther("100")
+            await pool.unpause()
+            
+            await pool.connect(user_1).depositETH({value: AMOUNT})
+            
+            const UNWRAP = false
+            await pool.connect(user_1).withdraw(weth.address, AMOUNT, UNWRAP)
+            
+            expect(await weth.balanceOf(user_1.address)).to.be.eq(AMOUNT)
         })
         it("user cannot withdraw collateral he doesn't own", async() =>{
             await pool.updateCollateral(
