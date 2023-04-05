@@ -51,22 +51,6 @@ describe.only("ERC20X", function () {
         await snapshotA.restore();
     });
 
-    it.skip("Should not set uncorrect pool address at initialization", async function () {
-        // redeploy ERC20X
-        const ERC20X = await ethers.getContractFactory('ERC20X')
-        let testErc20x = await ERC20X.deploy()
-        await testErc20x.deployed()
-        expect(testErc20x.address).to.be.not.equal(ZERO_ADDRESS);
-
-        // try uncorrect init ERC20X
-        await expect(testErc20x.initialize(testName, testSymbol, owner.address, syntheX.address)).to.be.reverted;
-	});
-
-    it.skip("Should not set uncorrect syntheX address at initialization", async function () {
-        // try uncorrect init ERC20X
-        await expect(await ERC20X.deploy("Test", "TST", pool.address, syntheX.address)).to.be.reverted;
-	});
-
     it("Should not mint if contract paused", async function () {
         // try mint
         let amount = 100;
