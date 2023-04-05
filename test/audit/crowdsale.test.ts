@@ -457,7 +457,7 @@ describe("Crowdsale", function () {
         })
     })
     describe("", function () {
-        it.skip("recive works as buyWithEth function", async () => {
+        it("recive works as buyWithEth function", async () => {
             await time.increase(DAY + DAY)
 
             const ETH_SEND_TO_CONTRACT = parseEther("2")
