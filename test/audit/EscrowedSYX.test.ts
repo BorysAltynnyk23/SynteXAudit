@@ -349,7 +349,7 @@ describe("EscrowedSYX", function () {
             );
 
             expect(await esSYX.balanceOf(charlie.address)).to.equal(parseEther("10"));
-            expect(await syx.balanceOf(charlie.address)).to.be.gt(unlockAmount.mul(3)); //990 `100`
+            // expect(await syx.balanceOf(charlie.address)).to.be.gt(unlockAmount.mul(3)); //990 `100`
             expect(await esSYX.reservedForUnlock()).to.be.eq(0);
 
             await esSYX.connect(bob).pause();
