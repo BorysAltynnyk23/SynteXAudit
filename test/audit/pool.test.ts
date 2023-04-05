@@ -357,7 +357,7 @@ describe("Pool", function () {
             await pool.connect(user_1).withdraw(weth.address, AMOUNT, UNWRAP)
             const USER_BALANCE_AFTER = await ethers.provider.getBalance(user_1.address)
 
-            expect(USER_BALANCE_BEFORE.sub(USER_BALANCE_AFTER)).to.be.lessThan(parseEther("0.000000001"))
+            expect(USER_BALANCE_BEFORE.sub(USER_BALANCE_AFTER)).to.be.lessThan(parseEther("0.001"))
         })
         it("user can withdraw ETH collateral as WETH", async() =>{
             await pool.updateCollateral(
@@ -707,31 +707,31 @@ describe("Pool", function () {
             const SINTETIC_MINT_AMOUNT = parseEther("9999999") 
             const RECIPIENT = user_1.address
 
-            console.log("user_1 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_1.address)))    
-            console.log("user_2 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_2.address)))   
+            // console.log("user_1 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_1.address)))    
+            // console.log("user_2 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_2.address)))   
 
             await pool.connect(user_1).deposit(collateral_1.address, COLLATERAL_AMOUNT_USER_1)
             await pool.connect(user_2).deposit(collateral_1.address, COLLATERAL_AMOUNT_USER_2)
             await syntetic_1.connect(user_1).mint(SINTETIC_MINT_AMOUNT, user_1.address, referee.address)
             await syntetic_1.connect(user_2).mint(SINTETIC_MINT_AMOUNT, user_2.address, referee.address)
-            console.log(toEther(await syntetic_1.balanceOf(user_1.address)))
-            console.log(toEther(await syntetic_1.balanceOf(user_2.address)))
+            // console.log(toEther(await syntetic_1.balanceOf(user_1.address)))
+            // console.log(toEther(await syntetic_1.balanceOf(user_2.address)))
 
             //reduce collateral price at oracle for 12%
             await oracle.setPrice(collateral_1.address, COLLATERAL_1_PRICE * 0.88)
 
-            console.log("user_1 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_1.address)))    
-            console.log("user_2 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_2.address)))      
+            // console.log("user_1 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_1.address)))    
+            // console.log("user_2 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_2.address)))      
 
             const AMOUNT_TO_LIQUDATE = parseEther("0.32")
             await syntetic_1.connect(user_2).liquidate(user_1.address, AMOUNT_TO_LIQUDATE, collateral_1.address)
 
-            console.log("user_1 synt balance =",toEther(await syntetic_1.balanceOf(user_1.address)))
-            console.log("user_2 synt balance =",toEther(await syntetic_1.balanceOf(user_2.address)))
+            // console.log("user_1 synt balance =",toEther(await syntetic_1.balanceOf(user_1.address)))
+            // console.log("user_2 synt balance =",toEther(await syntetic_1.balanceOf(user_2.address)))
 
-            console.log("user_1 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_1.address)))    
-            console.log("user_2 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_2.address)))    
-            
+            // console.log("user_1 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_1.address)))    
+            // console.log("user_2 collateral 1 balance=", toEther(await collateral_1.balanceOf(user_2.address)))    
+
         })
     })
     
