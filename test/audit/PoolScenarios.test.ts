@@ -461,5 +461,49 @@ describe("PoolScenarios", function () {
         collateralAmount
       );
     });
+
+    it("Should burn debt correctly", async () => {
+      const synthAmount = parseEther("10");
+      const collateralAmount = parseEther("20");
+
+      //deposit collateral by dave
+      await collateral.connect(dave).approve(pool.address, collateralAmount);
+      await pool.connect(dave).deposit(collateral.address, collateralAmount);
+
+      //issue debt to dave
+      await synth.connect(dave).mint(synthAmount, dave.address, ZERO_ADDRESS);
+      
+      //increase time to 33 days
+      await time.increase(86400 * 33);
+
+      expect(await synth.balanceOf(dave.address)).to.be.equal(synthAmount);
+      // expect(await pool.getUserDebtUSD(dave.address)).to.be.equal(synthAmount); //10.0005
+      
+      //burn debt by dave
+      await synth.connect(dave).burn(synthAmount);
+
+      // expect(await pool.getUserDebtUSD(dave.address)).to.be.eq(0); //0.000999
+      expect(await synth.balanceOf(dave.address)).to.be.eq(0);
+      
+      //issue debt to dave
+      await synth.connect(dave).mint(synthAmount, dave.address, ZERO_ADDRESS);
+      
+      //increase time to 33 days
+      await time.increase(86400 * 33);
+
+      // expect(await pool.getUserDebtUSD(dave.address)).to.be.equal(synthAmount); //10.00149995
+      expect(await synth.balanceOf(dave.address)).to.be.equal(synthAmount);
+      const daveDebt = await pool.getUserDebtUSD(dave.address);
+
+      //burn invalid debt by dave
+      await expect(synth.connect(dave).burn((synthAmount).add(265))).to.be.revertedWith('ERC20: burn amount exceeds balance');
+      
+      expect(await pool.getUserDebtUSD(dave.address)).to.be.equal(daveDebt);
+      
+      //burn second debt by dave
+      await synth.connect(dave).burn((synthAmount));
+
+      // expect(await pool.getUserDebtUSD(dave.address)).to.be.eq(0); //0.0019999
+    });
   });
 });
