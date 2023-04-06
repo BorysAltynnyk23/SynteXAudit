@@ -24,7 +24,7 @@ const toBN = ethers.BigNumber.from;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const provider = ethers.provider;
 
-describe.only("PoolScenarios", function () {
+describe("PoolScenarios", function () {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
@@ -163,7 +163,7 @@ describe.only("PoolScenarios", function () {
     await snapshotA.restore();
   });
 
-  describe.only("Deposit/borrow/withdraw and reward calculation", function () {
+  describe("Deposit/borrow/withdraw and reward calculation", function () {
     it("Should get rewards after repay if rewards off before repay", async () => {
       //deposit collateral
       await collateral.connect(dave).approve(pool.address, parseEther("100"));
