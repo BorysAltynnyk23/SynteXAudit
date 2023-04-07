@@ -15,7 +15,7 @@ const toBN = ethers.BigNumber.from;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const provider = ethers.provider;
 
-describe("EscrowedSYX", function () {
+describe.only("EscrowedSYX", function () {
     let owner: SignerWithAddress;
     let alice: SignerWithAddress;
     let bob: SignerWithAddress;
@@ -42,8 +42,8 @@ describe("EscrowedSYX", function () {
         syx = (await SyntheXToken.deploy(syntheX.address)) as SyntheXToken;
 
         const initialRewardsDuration = 3 * 24 * 60 * 60; // 3 days
-        const lockPeriod = 15552000; // 6 months
-        const unlockPeriod = 4838400; // 3 months
+        const lockPeriod = 15638400; // 6 months
+        const unlockPeriod = 7776000; // 3 months
         const percUnlockAtRelease = 500;
 
         const EscrowedSYX = await ethers.getContractFactory("EscrowedSYX");
@@ -309,9 +309,9 @@ describe("EscrowedSYX", function () {
             expect(await esSYX.reservedForUnlock()).to.equal(unlockAmount);
         });
 
-        it("Should claim unlocked with 3 requests", async () => {
-            await syx.connect(alice).mint(charlie.address, parseEther("1000"));
-            await syx.connect(charlie).approve(esSYX.address, parseEther("1000"));
+        it("Should claim unlocked with 3 requests after periods", async () => {
+            await syx.connect(alice).mint(charlie.address, parseEther("100"));
+            await syx.connect(charlie).approve(esSYX.address, parseEther("100"));
 
             await esSYX.connect(charlie).lock(parseEther("100"), charlie.address);
 
@@ -343,19 +343,107 @@ describe("EscrowedSYX", function () {
             const unlockPeriod = 4838400; // 3 months
             await time.increase(lockPeriod + unlockPeriod);
 
+            expect(await esSYX.unlocked(requestId1)).to.be.eq(unlockAmount);
+            expect(await esSYX.unlocked(requestId2)).to.be.eq(unlockAmount);
+            expect(await esSYX.unlocked(requestId3)).to.be.eq(unlockAmount);
+
             await expect(esSYX.connect(charlie).claimUnlocked([requestId1, requestId2, requestId3])).to.emit(
                 esSYX,
                 "Unlocked"
             );
 
+            expect(await esSYX.unlocked(requestId1)).to.be.eq(0);
+            expect(await esSYX.unlocked(requestId2)).to.be.eq(0);
+            expect(await esSYX.unlocked(requestId3)).to.be.eq(0);
+
             expect(await esSYX.balanceOf(charlie.address)).to.equal(parseEther("10"));
-            // expect(await syx.balanceOf(charlie.address)).to.be.gt(unlockAmount.mul(3)); //990 `100`
+            expect(await syx.balanceOf(charlie.address)).to.be.eq(unlockAmount.mul(3)); 
             expect(await esSYX.reservedForUnlock()).to.be.eq(0);
 
             await esSYX.connect(bob).pause();
             await expect(esSYX.connect(bob).claimUnlocked([requestId1, requestId2, requestId3])).to.be.revertedWith(
                 "Pausable: paused"
             );
+        });
+
+        it("Should claim unlocked correctly during unlock period", async () => {
+            await syx.connect(alice).mint(charlie.address, parseEther("100"));
+            await syx.connect(charlie).approve(esSYX.address, parseEther("100"));
+
+            await esSYX.connect(charlie).lock(parseEther("100"), charlie.address);
+
+            const unlockAmount = parseEther("30");
+
+            // Create a filter for the UnlockRequested event
+            const filter = esSYX.filters.UnlockRequested(charlie.address, null, null);
+
+            await esSYX.connect(charlie).startUnlock(unlockAmount);
+
+            // Query the latest event from the contract using the filter
+            let events = await esSYX.queryFilter(filter, "latest");
+            let event = events[0];
+            const requestId1 = event.args[1];
+
+            //3 months so lock period isn't finished
+            await time.increase(7776000);
+                        
+            await expect(esSYX.connect(charlie).claimUnlocked([requestId1])).to.be.revertedWith("22");
+            expect(await syx.balanceOf(charlie.address)).to.equal(0);
+            
+            // + 4 months so lock period is finished
+            await time.increase(10368000);            
+
+            expect(await esSYX.unlocked(requestId1)).to.be.closeTo(unlockAmount.div(3), parseEther("1")); //10.6
+            
+            await esSYX.connect(charlie).startUnlock(unlockAmount);
+
+            events = await esSYX.queryFilter(filter, "latest");
+            event = events[0];
+            const requestId2 = event.args[1];
+
+            await time.increase(7776000 + 10368000);
+
+            expect(await esSYX.unlocked(requestId2)).to.be.closeTo(unlockAmount.div(3), parseEther("1")); //10.6 - ~ 1 month have passed
+            const unlocked2 = await esSYX.unlocked(requestId2);
+            
+            await esSYX.connect(charlie).claimUnlocked([requestId2]);
+
+            expect(await syx.balanceOf(charlie.address)).to.be.closeTo(unlocked2, parseEther("0.001")); //10.6
+            const unlocked1 = await esSYX.unlocked(requestId1);
+
+            expect(unlocked1).to.be.eq(unlockAmount); //30 - 3 month have passed
+
+            await esSYX.connect(charlie).claimUnlocked([requestId1]);
+
+            expect(await syx.balanceOf(charlie.address)).to.be.closeTo(unlockAmount.add(unlocked2), parseEther("0.001")); //40.6
+
+            await esSYX.connect(charlie).startUnlock(unlockAmount);
+
+            events = await esSYX.queryFilter(filter, "latest");
+            event = events[0];
+            const requestId3 = event.args[1];
+
+            await time.increase(15638400 + 5097600);
+
+            expect(await esSYX.unlocked(requestId1)).to.be.eq(0);
+            expect(await esSYX.unlocked(requestId2)).to.be.closeTo(unlockAmount.div(3).mul(2), parseEther("1")); //19.3 - ~ 2 month have passed
+            expect(await esSYX.unlocked(requestId3)).to.be.closeTo(unlockAmount.div(3).mul(2), parseEther("1")); //20.1 - ~ 2 month have passed
+
+            await esSYX.connect(charlie).claimUnlocked([requestId1, requestId2, requestId3]);
+
+            expect(await esSYX.unlocked(requestId1)).to.be.eq(0);
+            expect(await esSYX.unlocked(requestId2)).to.be.eq(0);
+            expect(await esSYX.unlocked(requestId3)).to.be.eq(0);
+            
+            await time.increase(8776000);
+            
+            expect(await esSYX.unlocked(requestId2)).to.be.eq(0); //3 month have passed, all claimed
+            expect(await esSYX.unlocked(requestId3)).to.be.closeTo(unlockAmount.div(3), parseEther("0.3")); //9.8 - ~ +1 month have passed
+
+            await esSYX.connect(charlie).claimUnlocked([requestId3]);
+            expect(await esSYX.unlocked(requestId3)).to.be.eq(0);
+            expect(await syx.balanceOf(charlie.address)).to.be.eq(unlockAmount.mul(3)); //90
+            expect(await esSYX.reservedForUnlock()).to.be.eq(0);
         });
     });
 
